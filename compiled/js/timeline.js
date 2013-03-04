@@ -228,6 +228,13 @@ if (typeof VMM == 'undefined') {
 			array:			[],
 			api_loaded:		false,
 			que:			[]
+		},
+
+		salesforce: {
+			active: 		false,
+			array: 			[],
+			api_loaded: 	false,
+			que: 			[]
 		}
 		
 	}).init();
@@ -2795,6 +2802,9 @@ if(typeof VMM != 'undefined' && typeof VMM.ExternalAPI == 'undefined') {
 			if (VMM.master_config.webthumb.active) {
 				VMM.ExternalAPI.webthumb.pushQue();
 			}
+			if (VMM.master_config.salesforce.active) {
+				VMM.ExternalAPI.salesforce.pushQue();
+			}
 		},
 		
 		twitter: {
@@ -3769,7 +3779,7 @@ if(typeof VMM != 'undefined' && typeof VMM.ExternalAPI == 'undefined') {
 				if (m.id.match(/docs.google.com/i)) {
 					mediaElem	=	"<iframe class='doc' frameborder='0' width='100%' height='100%' src='" + m.id + "&amp;embedded=true'></iframe>";
 				} else {
-					mediaElem	=	"<iframe class='doc' frameborder='0' width='100%' height='100%' src='" + "http://docs.google.com/viewer?url=" + m.id + "&amp;embedded=true'></iframe>";
+					mediaElem	=	"<iframe class='doc' frameborder='0' width='100%' height='100%' src='" + "https://docs.google.com/viewer?url=" + m.id + "&amp;embedded=true'></iframe>";
 				}
 				VMM.attachElement("#"+m.uid, mediaElem);
 			},
@@ -4221,6 +4231,33 @@ if(typeof VMM != 'undefined' && typeof VMM.ExternalAPI == 'undefined') {
 				}
 				VMM.master_config.webthumb.que = [];
 			}
+		},
+
+		salesforce: {
+			
+			get: function(m, thumb) {
+				VMM.master_config.salesforce.que.push(m);
+				VMM.master_config.salesforce.active = true;
+			},
+			
+			create: function(m) {
+				trace("SALESFORCE CONTENT CREATE");
+				
+				var thumb_url = "https://login.salesforce.com/sfc/servlet.shepherd/version/renditionDownload?rendition=THUMB120BY90&versionId=" + m.id;
+				var url = "https://login.salesforce.com/" + m.id;
+
+				// Main Image
+				VMM.attachElement("#" + m.uid, "<a href='" + url + "' target='_blank'><img src='" + thumb_url + "'></a>");
+				// Thumb
+				VMM.attachElement("#" + m.uid + "_thumb", "<img src='" + thumb_url + "'>");
+			},
+			
+			pushQue: function() {
+				for(var i = 0; i < VMM.master_config.salesforce.que.length; i++) {
+					VMM.ExternalAPI.salesforce.create(VMM.master_config.salesforce.que[i]);
+				}
+				VMM.master_config.salesforce.que = [];
+			}
 		}
 	
 	}).init();
@@ -4317,6 +4354,9 @@ if(typeof VMM != 'undefined' && typeof VMM.MediaElement == 'undefined') {
 					return mediaElem;
 				} else if (m.type	==	"quote") {
 					mediaElem		=	"<div class='thumbnail thumb-quote'></div>";
+					return mediaElem;
+				} else if (m.type	==	"salesforce") {
+					mediaElem		=	"<div class='thumbnail thumb-document' id='" + uid + "_thumb'></div>";
 					return mediaElem;
 				} else if (m.type	==	"unknown") {
 					if (m.id.match("blockquote")) {
@@ -4432,7 +4472,11 @@ if(typeof VMM != 'undefined' && typeof VMM.MediaElement == 'undefined') {
 					mediaElem			=	"<div class='media-shadow website' id='" + m.uid + "'>" + loading_messege + "</div>";
 					VMM.ExternalAPI.webthumb.get(m);
 					//mediaElem			=	"<div class='media-shadow website'><a href='" + m.id + "' target='_blank'>" + "<img src='http://api1.thumbalizr.com/?url=" + m.id.replace(/[\./]$/g, "") + "&width=300' class='media-image'></a></div>";
-					
+			// SALESFORCE CONTENT
+				} else if (m.type		==	"salesforce") {
+					trace("SALESFORCE CONTENT");
+					mediaElem			=	"<div class='media-image media-shadow' id='" + m.uid + "'>" +  + loading_messege + "</div>";
+					VMM.ExternalAPI.salesforce.get(m);		
 			// NO MATCH
 				} else {
 					trace("NO KNOWN MEDIA TYPE FOUND");
@@ -4571,6 +4615,12 @@ if(typeof VMM != 'undefined' && typeof VMM.MediaType == 'undefined') {
 		} else if (d.match('blockquote')) {
 			media.type = "quote";
 			media.id = d;
+			success = true;
+		} else if (d.match('content.force.com')) {
+			media.type = "salesforce";
+			var id_regex = /068(\w){12}/;
+			var sfdc_id = d.match(id_regex)[0];
+			media.id = sfdc_id;
 			success = true;
 		} else {
 			trace("unknown media");  
