@@ -14,3 +14,6 @@ compiled/css/timeline-generator.css
 *.tmproject
 tmtags
 source/gfx/Sprites/
+*.sublime-workspace
+
+*.sublime-project
